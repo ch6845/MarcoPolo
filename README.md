@@ -2,7 +2,7 @@
 
 ![MarcoPolo](github_images/mp.png)
 
-MarcoPolo is a clustering-free approach to the exploration of differentially expressed genes along with group information in single-cell RNA-seq data
+MarcoPolo is a method to discover differentially expressed genes in single-cell RNA-seq data without depending on prior clustering
 
 
 
@@ -12,35 +12,13 @@ MarcoPolo is a clustering-free approach to the exploration of differentially exp
 <img src="github_images/overview.png" width="700">
 
 
-`MarcoPolo` is a novel clustering-free approach to identifying differentially expressed genes in scRNA data. In addition to predicting DEGs more accurately than previous methods, we aim to tell which groups of cells ‘differentially’ express the identified genes. Thus, the two main functions of our method are to sort out genes with biologically informative expression patterns with high precision without clustering and to learn tentative grouping of the cells with respect to the expression level directly from the given data. As our method does not demand prior group information of cells in advance, our approach is robust to uncertainties from clustering or cell type assignment. 
-
-![MarcoPolo](github_images/bimodal.jpg))<br>
-
-`MarcoPolo` disentangles the bimodality inherent in gene expression and divides cells into two groups by maximum likelihood estimation under a mixture model. This figure shows how cells in real datasets were divided by `MarcoPolo` for each of four exemplary genes. For these genes shown, a certain cell type showed higher expression than other cell types. `MarcoPolo` successfully identified them as a separate group.
-
-# Advantages of using MarcoPolo
-* to sort out DEGs highly accurately
-* to identify cell types in the given data without the help of a clustering algorithm
-    * MarcoPolo can identify cell types that are not separated well in the standard clustering process
-* to select genes as input features for the dimensionality reduction step 
-    * If you use the biologically feasible genes identified by MarcoPolo as input for dimensionality reduction, you can obtain better clustering results
-
-
-# Paper
-
-For more information, please refer to our paper.
-
-Chanwoo Kim, et al. MarcoPolo: a clustering-free approach to the exploration of bimodally expressed genes along with group information in single-cell RNA-seq data. 
-
-# MarcoPolo report
-Our framework provides the analysis result in the form of an HTML file, so that researchers can conveniently interpret and make use of the result for various purposes. The reports using the datasets included in our paper are as follows.
+`MarcoPolo` is a novel clustering-independent approach to identifying DEGs in scRNA-seq data. MarcoPolo identifies informative DEGs without depending on prior clustering, and therefore is robust to uncertainties from clustering or cell type assignment. Since DEGs are identified independent of clustering, one can utilize them to detect subtypes of a cell population that are not detected by the standard clustering, or one can utilize them to augment HVG methods to improve clustering. An advantage of our method is that it automatically learns which cells are expressed and which are not by fitting the bimodal distribution. Additionally, our framework provides analysis results in the form of an HTML file so that researchers can conveniently visualize and interpret the results.
 
 |Datasets|URL|
 |:---|:---|
 |Human liver cells (MacParland et al.)|[https://ch6845.github.io/MarcoPolo/HumanLiver/](https://ch6845.github.io/MarcoPolo/HumanLiver/)|
 |Human embryonic stem cells (The Koh et al.)|[https://ch6845.github.io/MarcoPolo/hESC/](https://ch6845.github.io/MarcoPolo/hESC/)|
 |Peripheral blood mononuclear cells (Zheng et al.)|[https://ch6845.github.io/MarcoPolo/Zhengmix8eq/](https://ch6845.github.io/MarcoPolo/Zhengmix8eq/)|
-
 
 # How to install
 
@@ -52,6 +30,7 @@ Dependencies are as follows:
     * `scipy` (1.6.0)
     * `scikit-learn` (0.24.1)
     * `pytorch` (1.4.0)
+    * `jinja2` (2.11.2)
 * `R` (4.0.3)
     * `Seurat` (3.2.1)
     * `scran` (1.18.3)
@@ -75,7 +54,7 @@ conda activate MarcoPolo
 
 2. Install Python packages
 ```
-pip install numpy=1.19.5 pandas=1.21 scipy=1.6.0 scikit-learn=0.24.1
+pip install numpy=1.19.5 pandas=1.21 scipy=1.6.0 scikit-learn=0.24.1 jinja2==2.11.2
 ```
 Also, please install `PyTorch` from https://pytorch.org/ (If you want to install CUDA-supported PyTorch, please install CUDA in advance)
 
@@ -123,7 +102,7 @@ save_sce(sce_object, 'scRNAdata')
 
 ```
 
-2. Run MarcoPolo analysis as follows.
+2. Run MarcoPolo
 ```
 import MarcoPolo.QQscore as QQ
 import MarcoPolo.summarizer as summarizer
@@ -132,4 +111,10 @@ path='scRNAdata'
 QQ.save_QQscore(path=path,device='cuda:0')
 allscore=summarizer.get_MarcoPolo(path=path)
 allscore.to_csv('{path}.MarcoPolo.2.rank.tsv'.format(path=path),sep='\t')  
+```
+
+3. Generate MarcoPolo HTML report
+```
+import MarcoPolo.report as report
+report.generate_report(input_path="datasets/extract/Kohinbulk_filtered",output_path="docs/hESC")
 ```
