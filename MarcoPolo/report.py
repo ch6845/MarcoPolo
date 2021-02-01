@@ -78,7 +78,7 @@ def DiscretePalette(n, palette=None):
 
 
 
-def generate_report(input_path,output_path,top_num=1000,output_mode='pub',gene_info_path='https://ftp.ncbi.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz',mode=2):
+def generate_report(input_path,output_path,top_num_table=1000,top_num_figure=1000,output_mode='pub',plot_regen=True,gene_info_path='https://ftp.ncbi.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz',mode=2):
     path=input_path
     report_path=output_path
     
@@ -258,7 +258,7 @@ def generate_report(input_path,output_path,top_num=1000,output_mode='pub',gene_i
         template_read=f.read()
     template = Template(source=template_read)  
 
-    MarcoPolo_table=allscore_munge.sort_values("MarcoPolo_rank",ascending=True).set_index('MarcoPolo_rank').iloc[:top_num]
+    MarcoPolo_table=allscore_munge.sort_values("MarcoPolo_rank",ascending=True).set_index('MarcoPolo_rank').iloc[:top_num_table]
     MarcoPolo_table.index+=1
     MarcoPolo_table=MarcoPolo_table.to_html(classes="table table-bordered",table_id='dataTable')
 
@@ -491,7 +491,7 @@ def generate_report(input_path,output_path,top_num=1000,output_mode='pub',gene_i
         #plt.show()
         plt.close(fig)
 
-        if count_idx==top_num+1:
+        if count_idx==top_num_figure+1:
             break
 
 

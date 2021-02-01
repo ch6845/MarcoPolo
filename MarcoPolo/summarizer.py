@@ -144,7 +144,7 @@ def get_MarcoPolo(path,mode=2,voting_thres=0.7,n_pc=2):
     
     
     allscore['MarcoPolo']=MarcoPolo_score
-    allscore['MarcoPolo_rank']=pd.Series(np.arange(allscore.shape[0]),index=allscore['MarcoPolo'].sort_values(ascending=True).index).loc[allscore.index]
+    allscore['MarcoPolo_rank']=pd.Series(np.arange(allscore.shape[0]),index=allscore.sort_values(['MarcoPolo','lfc'],ascending=[True,False]).index).loc[allscore.index]
     
     
     return allscore

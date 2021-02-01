@@ -116,5 +116,5 @@ allscore.to_csv('{path}.MarcoPolo.2.rank.tsv'.format(path=path),sep='\t')
 3. Generate MarcoPolo HTML report
 ```
 import MarcoPolo.report as report
-report.generate_report(input_path="datasets/extract/Kohinbulk_filtered",output_path="docs/hESC")
+report.generate_report(input_path="scRNAdata",output_path="report/hESC")
 ```
