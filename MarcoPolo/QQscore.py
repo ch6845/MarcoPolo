@@ -113,7 +113,11 @@ def get_QQscore(Y, X, s, num_cluster_list, LR, EM_ITER_MAX, M_ITER_MAX, LL_diff_
 
 
 def save_QQscore(path='datasets/extract/{}', Covar=None, num_cluster_list=[1,2], LR=0.1, EM_ITER_MAX=20, M_ITER_MAX=10000,LL_diff_tolerance=1e-4, Q_diff_tolerance=1e-4, device='cuda:{}'.format(0),verbose=False):    
-    
+    """
+    Save QQ
+    :param path str: input/output path
+    :param Covar numpy.array: covariate
+    """        
     exp_data=mmread('{}.data.counts.mm'.format(path)).toarray().astype(float)
     with open('{}.data.col'.format(path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
     with open('{}.data.row'.format(path),'r') as f: exp_data_row=[i.strip().strip('"') for i in f.read().split()]
@@ -152,6 +156,10 @@ def save_QQscore(path='datasets/extract/{}', Covar=None, num_cluster_list=[1,2],
 
 
 def read_QQscore(path,num_cluster_list=[1,2]):
+    """
+    read QQ
+    :param path str: input/output path
+    """        
     result_list=[]
     gamma_list_list=[]
     delta_log_list_list=[]

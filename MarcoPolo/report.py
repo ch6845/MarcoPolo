@@ -20,10 +20,18 @@ import matplotlib.pyplot as plt
 
 import shutil
 from jinja2 import Template
+import rpy2
 
 
 #Porting of https://github.com/satijalab/seurat/blob/b51801bc4b1a66aed5456473c9fe0be884994c93/R/visualization.R#L2686
 def DiscretePalette(n, palette=None):
+    """
+    Generate a list of colors that are well separated with one another.
+    
+    :param int n: number of colors
+    
+    :return numpy.array: list of colors
+    """
     palettes={
                 'alphabet':[
                   "#F0A0FF", "#0075DC", "#993F00", "#4C005C", "#191919", "#005C31",
@@ -78,7 +86,20 @@ def DiscretePalette(n, palette=None):
 
 
 
-def generate_report(input_path,output_path,top_num_table=1000,top_num_figure=1000,output_mode='pub',plot_regen=True,gene_info_path='https://ftp.ncbi.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz',mode=2):
+def generate_report(input_path,output_path,top_num_table=1000,top_num_figure=1000,output_mode='pub',gene_info_path='https://ftp.ncbi.nih.gov/gene/DATA/GENE_INFO/Mammalia/Homo_sapiens.gene_info.gz',mode=2):
+    """
+    Generate HTML report.
+    
+    :param input_path str: input file path
+    :param output_path str: output file path
+    :param top_num_table int: number of genes to be shown in HTML report
+    :param top_num_figure int: number of genes to make plots
+    :param output_mode str: 'pub' is preferred
+    :param gene_info_path str: gene info path
+    :param mode int: default=2
+    
+    """        
+    
     path=input_path
     report_path=output_path
     

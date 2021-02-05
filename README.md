@@ -30,6 +30,7 @@ Dependencies are as follows:
     * `scipy` (1.6.0)
     * `scikit-learn` (0.24.1)
     * `pytorch` (1.4.0)
+    * `rpy2` (3.4.2)
     * `jinja2` (2.11.2)
 * `R` (4.0.3)
     * `Seurat` (3.2.1)
@@ -54,7 +55,7 @@ conda activate MarcoPolo
 
 2. Install Python packages
 ```
-pip install numpy=1.19.5 pandas=1.21 scipy=1.6.0 scikit-learn=0.24.1 jinja2==2.11.2
+pip install numpy=1.19.5 pandas=1.21 scipy=1.6.0 scikit-learn=0.24.1 jinja2==2.11.2 rpy2=3.4.2
 ```
 Also, please install `PyTorch` from https://pytorch.org/ (If you want to install CUDA-supported PyTorch, please install CUDA in advance)
 
@@ -109,8 +110,8 @@ import MarcoPolo.summarizer as summarizer
 
 path='scRNAdata'
 QQ.save_QQscore(path=path,device='cuda:0')
-allscore=summarizer.get_MarcoPolo(path=path)
-allscore.to_csv('{path}.MarcoPolo.2.rank.tsv'.format(path=path),sep='\t')  
+allscore=summarizer.save_MarcoPolo(input_path=path,
+                                   output_path=path)
 ```
 
 3. Generate MarcoPolo HTML report

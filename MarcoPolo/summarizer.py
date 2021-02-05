@@ -14,26 +14,41 @@ from sklearn.decomposition import PCA
 
 import MarcoPolo.QQscore as QQ
 
+import rpy2.robjects as ro
+from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
+
+from rpy2.robjects.conversion import localconverter
 
 
-def get_MarcoPolo(path,mode=2,voting_thres=0.7,n_pc=2):
+def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,n_pc=2):
+    """
+    Save MarcoPolo result
+    
+    :param input_path str: input file path
+    :param output_path str: output file path
+    :param mode int: default=2
+    :param voting thres float: value >=0 and <=1
+    :param n_pc int: value >=1 and <=50
+    """
+    
     # read scRNA data
-    exp_data=mmread('{}.data.counts.mm'.format(path)).toarray().astype(float)
-    with open('{}.data.col'.format(path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
-    with open('{}.data.row'.format(path),'r') as f: exp_data_row=[i.strip().strip('"') for i in f.read().split()]
+    exp_data=mmread('{}.data.counts.mm'.format(input_path)).toarray().astype(float)
+    with open('{}.data.col'.format(input_path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
+    with open('{}.data.row'.format(input_path),'r') as f: exp_data_row=[i.strip().strip('"') for i in f.read().split()]
     assert exp_data.shape==(len(exp_data_row),len(exp_data_col))
     assert len(set(exp_data_row))==len(exp_data_row)
     assert len(set(exp_data_col))==len(exp_data_col)        
 
-    exp_data_meta=pd.read_csv('{}.metadatacol.tsv'.format(path),sep='\t')
+    exp_data_meta=pd.read_csv('{}.metadatacol.tsv'.format(input_path),sep='\t')
 
-    cell_size_factor=pd.read_csv('{}.size_factor.tsv'.format(path),sep='\t',header=None)[0].values.astype(float)#.reshape(-1,1)
+    cell_size_factor=pd.read_csv('{}.size_factor.tsv'.format(input_path),sep='\t',header=None)[0].values.astype(float)#.reshape(-1,1)
 
     x_data_intercept=np.array([np.ones(exp_data.shape[1])]).transpose()
     x_data_null=np.concatenate([x_data_intercept],axis=1)
     
     #read QQ
-    result_list,gamma_list_list,delta_log_list_list,beta_list_list=QQ.read_QQscore(path,[1,mode])
+    result_list,gamma_list_list,delta_log_list_list,beta_list_list=QQ.read_QQscore(input_path,[1,mode])
     gamma_list=gamma_list_list[-1]
     
     gamma_argmax_list=QQ.gamma_list_exp_data_to_gamma_argmax_list(gamma_list,exp_data)
@@ -72,13 +87,13 @@ def get_MarcoPolo(path,mode=2,voting_thres=0.7,n_pc=2):
         
         
     try:
-        markerrho=pd.read_csv('{}.markerrho.tsv'.format(path),index_col=0,sep='\t')
+        markerrho=pd.read_csv('{}.markerrho.tsv'.format(input_path),index_col=0,sep='\t')
     except:
         print('markerrho does not exist')
         markerrho=pd.DataFrame([])  
         #except NameError:
     try:
-        maxdiff=pd.read_csv('{}.maxdiff.tsv'.format(path),index_col=0,header=None,sep='\t')[1]
+        maxdiff=pd.read_csv('{}.maxdiff.tsv'.format(input_path),index_col=0,header=None,sep='\t')[1]
     except:
         print('maxdiff does not exist')
         maxdiff=np.zeros_like(QQratio.values)
@@ -145,6 +160,19 @@ def get_MarcoPolo(path,mode=2,voting_thres=0.7,n_pc=2):
     
     allscore['MarcoPolo']=MarcoPolo_score
     allscore['MarcoPolo_rank']=pd.Series(np.arange(allscore.shape[0]),index=allscore.sort_values(['MarcoPolo','lfc'],ascending=[True,False]).index).loc[allscore.index]
+
+    
+    allscore.to_csv('{path}.MarcoPolo.{mode}.rank.tsv'.format(path=output_path,mode=mode),sep='\t')
     
     
-    return allscore
+    base = importr('base')
+
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        allscore_r = ro.conversion.py2rpy(allscore.fillna(0))
+        ro.r.assign("result", allscore_r)
+
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        gamma_argmax_list_r = ro.conversion.py2rpy(pd.DataFrame(gamma_argmax_list))
+        ro.r.assign("gamma_argmax_list", gamma_argmax_list_r)        
+        
+    base.save_image('{path}.MarcoPolo.{mode}.RData'.format(path=output_path,mode=mode))
