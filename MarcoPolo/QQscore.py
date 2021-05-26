@@ -111,21 +111,20 @@ def get_QQscore(Y, X, s, num_cluster_list, LR, EM_ITER_MAX, M_ITER_MAX, LL_diff_
 
 # In[8]:
 
-
-def save_QQscore(path='datasets/extract/{}', Covar=None, num_cluster_list=[1,2], LR=0.1, EM_ITER_MAX=20, M_ITER_MAX=10000,LL_diff_tolerance=1e-4, Q_diff_tolerance=1e-4, device='cuda:{}'.format(0),verbose=False):    
+def save_QQscore(input_path='datasets/extract/{}',output_path='datasets/extract/{}', Covar=None, num_cluster_list=[1,2], LR=0.1, EM_ITER_MAX=20, M_ITER_MAX=10000,LL_diff_tolerance=1e-4, Q_diff_tolerance=1e-4, device='cuda:{}'.format(0),verbose=False,num_thread=1):    
     """
     Save QQ
-    :param path str: input/output path
+    :param input_path str: input/output input_path
     :param Covar numpy.array: covariate
     """        
-    exp_data=mmread('{}.data.counts.mm'.format(path)).toarray().astype(float)
-    with open('{}.data.col'.format(path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
-    with open('{}.data.row'.format(path),'r') as f: exp_data_row=[i.strip().strip('"') for i in f.read().split()]
+    exp_data=mmread('{}.data.counts.mm'.format(input_path)).toarray().astype(float)
+    with open('{}.data.col'.format(input_path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
+    with open('{}.data.row'.format(input_path),'r') as f: exp_data_row=[i.strip().strip('"') for i in f.read().split()]
     assert exp_data.shape==(len(exp_data_row),len(exp_data_col))
     assert len(set(exp_data_row))==len(exp_data_row)
     assert len(set(exp_data_col))==len(exp_data_col)  
     
-    cell_size_factor=pd.read_csv('{}.size_factor.tsv'.format(path),sep='\t',header=None)[0].values.astype(float)#.reshape(-1,1)
+    cell_size_factor=pd.read_csv('{}.size_factor.tsv'.format(input_path),sep='\t',header=None)[0].values.astype(float)#.reshape(-1,1)
     
     if Covar is None:
         x_data_intercept=np.array([np.ones(exp_data.shape[1])]).transpose()
@@ -134,22 +133,59 @@ def save_QQscore(path='datasets/extract/{}', Covar=None, num_cluster_list=[1,2],
         x_data_null=Covar
         #print(x_data_null.shape)
         # cell count x covar dim (8444 x 1)
+    #exp_data=exp_data[:500,:]
+    
+    
+    if num_thread!=1:
+        pool=multiprocessing.Pool(processes=num_thread)
+        #print(len(set(exp_data_row)),exp_data_row)
+        #print(exp_data.transpose().shape,x_data_null.shape,cell_size_factor.shape,num_cluster_list)
+        
+
+
+        gene_per_thread=int(exp_data.shape[0]/num_thread-1)-1
+        index_split=[(gene_per_thread*(thread),gene_per_thread*(thread+1)) for thread in range(num_thread-1)]+[(gene_per_thread*(num_thread-1),exp_data.shape[0])]
+
+
+        QQscore_result=pool.starmap(get_QQscore,[(exp_data.transpose()[:,index_split[i][0]:index_split[i][1]],
+                                                  x_data_null[:],
+                                                  cell_size_factor[:],
+                                                  num_cluster_list,
+                                                  LR,
+                                                  EM_ITER_MAX,
+                                                  M_ITER_MAX,
+                                                  LL_diff_tolerance,
+                                                  Q_diff_tolerance,
+                                                  device,
+                                                  verbose) for i in range(len(index_split))])
+
+        QQscore_result=([[k for j in range(len(QQscore_result)) for k in QQscore_result[j][0][i]] for i in range(len(QQscore_result[0][0]))],
+    [pd.concat([QQscore_result[j][1][i] for j in range(len(QQscore_result))]).reset_index() for i in range(len(QQscore_result[0][1]))],
+    [[k for j in range(len(QQscore_result)) for k in QQscore_result[j][2][i]] for i in range(len(QQscore_result[0][2]))],
+    [[k for j in range(len(QQscore_result)) for k in QQscore_result[j][3][i]] for i in range(len(QQscore_result[0][3]))])
+    
     
 
-    QQscore_result=get_QQscore(Y=exp_data.transpose()[:,:], X=x_data_null[:], s=cell_size_factor[:], num_cluster_list=num_cluster_list, LR=LR, EM_ITER_MAX=EM_ITER_MAX, M_ITER_MAX=M_ITER_MAX, LL_diff_tolerance=LL_diff_tolerance, Q_diff_tolerance=Q_diff_tolerance, device=device, verbose=verbose)
+
+    else:
+        QQscore_result=get_QQscore(Y=exp_data.transpose()[:,:], X=x_data_null[:], s=cell_size_factor[:], num_cluster_list=num_cluster_list, LR=LR, EM_ITER_MAX=EM_ITER_MAX, M_ITER_MAX=M_ITER_MAX, LL_diff_tolerance=LL_diff_tolerance, Q_diff_tolerance=Q_diff_tolerance, device=device, verbose=verbose)
     
+    
+
     gamma_list_list,result_list,delta_log_list_list,beta_list_list=QQscore_result
     
     
     for num_cluster_list_idx,num_cluster in enumerate(num_cluster_list):
-        result_list[num_cluster_list_idx].to_csv('{}.QQscore.{}.tsv'.format(path,num_cluster),sep='\t')
+        result_list[num_cluster_list_idx].to_csv('{}.QQscore.{}.tsv'.format(output_path,num_cluster),sep='\t')
     
-        with open('{}.QQscore.{}.gamma_list.pickle'.format(path,num_cluster), 'wb') as f:
+        with open('{}.QQscore.{}.gamma_list.pickle'.format(output_path,num_cluster), 'wb') as f:
             pickle.dump(gamma_list_list[num_cluster_list_idx], f)
-        with open('{}.QQscore.{}.delta_log_list.pickle'.format(path,num_cluster), 'wb') as f:
+        with open('{}.QQscore.{}.delta_log_list.pickle'.format(output_path,num_cluster), 'wb') as f:
             pickle.dump(delta_log_list_list[num_cluster_list_idx], f)
-        with open('{}.QQscore.{}.beta_list.pickle'.format(path,num_cluster), 'wb') as f:
+        with open('{}.QQscore.{}.beta_list.pickle'.format(output_path,num_cluster), 'wb') as f:
             pickle.dump(beta_list_list[num_cluster_list_idx], f)            
+
+
 
 
 # In[ ]:

@@ -21,7 +21,8 @@ from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 
 
-def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,n_pc=2):
+def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,norm_thres=10,n_pc=2,lfc_thres=0.6,minor_size_min=10,minor_size_max_percent=70):
+    
     """
     Save MarcoPolo result
     
@@ -31,7 +32,7 @@ def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,n_pc=2):
     :param voting thres float: value >=0 and <=1
     :param n_pc int: value >=1 and <=50
     """
-    
+    lfc_thres
     # read scRNA data
     exp_data=mmread('{}.data.counts.mm'.format(input_path)).toarray().astype(float)
     with open('{}.data.col'.format(input_path),'r') as f: exp_data_col=[i.strip().strip('"') for i in f.read().split()]
@@ -76,7 +77,7 @@ def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,n_pc=2):
     # PC Variance    
     exp_data_norm=np.log1p(10000*exp_data/exp_data.sum(axis=0))
     exp_data_norm_scale=(exp_data_norm-exp_data_norm.mean(axis=1).reshape(-1,1))/    exp_data_norm.std(axis=1).reshape(-1,1)
-    exp_data_norm_scale[exp_data_norm_scale>10]=10
+    exp_data_norm_scale[exp_data_norm_scale>norm_thres]=norm_thres
 
     pca = PCA(n_components=50)
     pca.fit(exp_data_norm_scale.T)
@@ -135,23 +136,23 @@ def save_MarcoPolo(input_path,output_path,mode=2,voting_thres=0.7,n_pc=2):
     
     allscore['votingscore_rank']=allscore['intersectioncount_rank'].copy()
     allscore['votingscore_rank'][~(
-            (allscore['lfc']>0.6)&
-            (allscore['minorsize']>int(10))&
-            (allscore['minorsize']<int(70/100*len(exp_data_col)))
+            (allscore['lfc']>lfc_thres)&
+            (allscore['minorsize']>int(minor_size_min))&
+            (allscore['minorsize']<int(minor_size_max_percent/100*len(exp_data_col)))
             )]=len(allscore)    
     
     allscore['bimodalityscore_rank']=allscore[['QQratio_rank','mean_0_all_rank']].min(axis=1)
     allscore['bimodalityscore_rank'][~(
-            (allscore['lfc']>0.6)&
-            (allscore['minorsize']>int(10))&
-            (allscore['minorsize']<int(70/100*len(exp_data_col)))
+            (allscore['lfc']>lfc_thres)&
+            (allscore['minorsize']>int(minor_size_min))&
+            (allscore['minorsize']<int(minor_size_max_percent/100*len(exp_data_col)))
             )]=len(allscore)    
     
     allscore['proximityscore_rank']=allscore['PCstd_rank'].copy()
     allscore['proximityscore_rank'][~(
-            (allscore['lfc']>0.6)&
-            (allscore['minorsize']>int(10))&
-            (allscore['minorsize']<int(70/100*len(exp_data_col)))
+            (allscore['lfc']>lfc_thres)&
+            (allscore['minorsize']>int(minor_size_min))&
+            (allscore['minorsize']<int(minor_size_max_percent/100*len(exp_data_col)))
             )]=len(allscore)       
     
     
